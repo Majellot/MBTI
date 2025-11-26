@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>재미로 보는 나의 MBTI 테스트</title>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&display=swap');
+
+        /* --- 컬러 팔레트 정의 --- */
+        :root {
+            --main-gold: #ffd700; /* 공통 골드 포인트 컬러 */
+            --main-navy: #0d1b2a; /* 깊은 남색 */
+            --bg-deep: #02060c; /* 아주 어두운 배경 */
+            --container-bg: #0a0f16; /* 컨테이너 배경 */
+            --mbti-color: var(--main-gold); /* 결과 화면에서 바뀔 동적 컬러 변수 (기본값 골드) */
+        }
+
+        * { margin:0; padding:0; box-sizing:border-box; }
+
+        body {
+            background: var(--bg-deep);
+            color: #eee;
+            font-family: 'Pretendard', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 480px;
+            background: var(--container-bg);
+            border-radius: 20px;
+            /* 남색과 골드가 섞인 은은한 그림자 */
+            box-shadow: 0 20px 50px rgba(13, 27, 42, 0.7), 0 0 20px rgba(255, 215, 0, 0.1);
+            overflow: hidden;
+            position: relative;
+            min-height: 600px;
+            border: 1px solid rgba(255, 215, 0, 0.1);
+        }
+
+        .screen { display: none; padding: 40px 25px; text-align: center; animation: fade 0.5s; }
+        .screen.active { display: block; }
+        @keyframes fade { from {opacity:0; transform:translateY(10px)} to {opacity:1; transform:none} }
+
+        /* --- 1. 시작 화면 --- */
+        #start {
+            padding: 0;
+            height: 100%;
+            position: relative;
+            background-color: var(--bg-deep);
+        }
+
+        .start-img-bg {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        /* 텍스트만 있는 반짝이는 버튼 스타일 */
+        .start-btn-wrapper {
+            position: absolute;
+            bottom: 50px; /* 하단 위치 */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            z-index: 10;
+            text-align: center;
+        }
+
+        .blink-btn {
+            background: none; /* 배경 제거 */
+            border: none;     /* 테두리 제거 */
+            color: var(--main-gold);
+            font-family: 'Montserrat', sans-serif;
+            font-size: 28px;  /* 글자 크기 키움 */
+            font-weight: 900;
+            cursor: pointer;
+            letter-spacing: 3px;
+            /* 텍스트 자체에 글로우 효과 */
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5); 
+            animation: text-glow 2s infinite alternate;
+            transition: transform 0.3s ease;
+        }
+        
+        .blink-btn:hover {
+            transform: scale(1.1); /* 호버 시 살짝 커짐 */
+        }
+
+        /* 텍스트 반짝임 애니메이션 */
+        @keyframes text-glow {
+            from { 
+                opacity: 0.8; 
+                text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+            }
+            to { 
+                opacity: 1; 
+                text-shadow: 0 0 20px rgba(255, 215, 0, 1), 0 0 40px rgba(255, 215, 0, 0.8);
+            }
+        }
+
+
+        /* --- 2. 질문 화면 (골드 톤 유지) --- */
+        .progress-bar-bg {
+            height: 6px; background: #222; border-radius: 3px; margin-bottom: 30px;
+        }
+        .progress-bar-fill {
+            /* 진행바는 골드색 */
+            height: 100%; background: var(--main-gold); width: 0%; transition: width 0.3s;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+        .question-text {
+            font-size: 20px; font-weight: 600; line-height: 1.5; margin-bottom: 30px; min-height: 60px;
+            display: flex; align-items: center; justify-content: center; word-break: keep-all;
+            color: #fff;
+        }
+        .answer-btn {
+            background: rgba(255,255,255,0.05); color: #ddd; padding: 18px; border-radius: 12px;
+            text-align: left; font-size: 15px; margin-bottom: 12px; cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.1); transition: 0.2s;
+        }
+        /* 호버 시 골드 컬러 적용 */
+        .answer-btn:hover { border-color: var(--main-gold); color: var(--main-gold); background: rgba(255, 215, 0, 0.1); }
+
+
+        /* --- 3. 결과 화면 (동적 컬러 var(--mbti-color) 적용) --- */
+        .result-container {
+            background: var(--container-bg); padding: 20px; border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .mbti-glow {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 60px; font-weight: 900; color: #fff;
+            margin-bottom: 10px;
+            /* MBTI별 동적 컬러로 글로우 */
+            text-shadow: 0 0 20px var(--mbti-color), 0 0 40px var(--mbti-color);
+        }
+        
+        .result-title { font-size: 24px; margin-bottom: 20px; color: #fff; word-break: keep-all; }
+        
+        .result-img-box {
+            width: 100%; max-width: 280px; margin: 0 auto 20px;
+            border-radius: 15px; overflow: hidden;
+            /* MBTI별 동적 컬러 테두리 */
+            border: 3px solid var(--mbti-color);
+        }
+        .result-img-box img { width: 100%; display: block; }
+
+        .result-desc {
+            font-size: 15px; line-height: 1.6; color: #ccc;
+            background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px;
+            text-align: left; margin-bottom: 20px; word-break: keep-all;
+            white-space: pre-line;
+        }
+
+        .match-wrap { display: flex; gap: 10px; margin-top: 20px; }
+        .match-box { flex: 1; background: rgba(255,255,255,0.05); padding: 15px 5px; border-radius: 12px; }
+        .match-label { display: block; font-size: 14px; font-weight: 700; margin-bottom: 10px; }
+        .match-content { font-family: 'Montserrat', sans-serif; font-size: 16px; font-weight: 700; color: var(--mbti-color); }
+
+        .btn-group { margin-top: 20px; display: flex; gap: 10px; }
+        .action-btn { flex: 1; padding: 15px; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; font-size: 14px; transition: 0.2s; }
+        /* 캡쳐 버튼에 MBTI 동적 컬러 적용 */
+        .capture-btn { background: var(--mbti-color); color: #000; box-shadow: 0 0 15px var(--mbti-color); }
+        .capture-btn:hover { filter: brightness(1.2); }
+        .restart-btn { background: #333; color: #aaa; }
+        .restart-btn:hover { background: #444; color: #fff; }
+
+        /* 로딩 스피너 (골드) */
+        .spinner {
+            width: 50px; height: 50px; border: 5px solid rgba(255,255,255,0.1);
+            border-top: 5px solid var(--main-gold); border-radius: 50%;
+            animation: spin 1s linear infinite; margin: 100px auto 30px;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        
+        <div id="start" class="screen active">
+            <img src="https://i.postimg.cc/13kgDrJg/sijag-choejong.jpg" alt="Start Screen" class="start-img-bg">
+            
+            <div class="start-btn-wrapper">
+                <button class="blink-btn" onclick="startTest()">START TEST</button>
+            </div>
+        </div>
+
+        <div id="question" class="screen">
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="progress"></div>
+            </div>
+            <div class="question-text" id="qtext"></div>
+            <div id="answers"></div>
+        </div>
+
+        <div id="loading" class="screen">
+            <div class="spinner"></div>
+            <p style="color: #ccc;">당신의 내면을 탐험하는 중...</p>
+        </div>
+
+        <div id="result" class="screen" style="padding:0;">
+            <div id="captureArea" class="result-container">
+                <div class="mbti-glow" id="resultType">MBTI</div>
+                <div class="result-title" id="resultTitle">타이틀</div>
+                
+                <div class="result-img-box">
+                    <img id="resultImg" src="" alt="결과 이미지" crossorigin="anonymous">
+                </div>
+                
+                <div class="result-desc" id="resultDesc">설명</div>
+
+                <div class="match-wrap">
+                    <div class="match-box">
+                        <span class="match-label" style="color:#ff6b81;">💖 환상의 케미</span>
+                        <div class="match-content" id="bestMatch"></div>
+                    </div>
+                    <div class="match-box">
+                        <span class="match-label" style="color:#7bed9f;">🤝 우린 잘 맞을지도?</span>
+                        <div class="match-content" id="sosoMatch"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="padding: 20px;">
+                <div class="btn-group">
+                    <button class="action-btn capture-btn" onclick="captureResult()">💾 결과 저장</button>
+                    <button class="action-btn restart-btn" onclick="restartTest()">↺ 다시 하기</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        let current = 0;
+        let scores = {E:0, I:0, S:0, N:0, T:0, F:0, J:0, P:0};
+
+        // 24문항 (따뜻한 말투)
+        const questions = [
+            { q: "주말 약속이 취소됐을 때 나의 반응은?", a: [{t:"아쉽네.. 다른 친구 누구 시간 되나?", type:"E", s:2}, {t:"오예! 뜻밖의 휴식 개이득!", type:"I", s:2}, {t:"잠깐 아쉽지만 혼자 카페라도 갈까?", type:"E", s:1}, {t:"다행이다. 사실 나가기 귀찮았어.", type:"I", s:1}] },
+            { q: "모임에서 자기소개를 해야 한다면?", a: [{t:"먼저 손들고 분위기를 주도한다.", type:"E", s:2}, {t:"제발 내 차례가 늦게 오길 빈다.", type:"I", s:2}, {t:"적당히 웃으며 무난하게 한다.", type:"E", s:1}, {t:"최대한 짧고 간결하게 끝낸다.", type:"I", s:1}] },
+            { q: "갑작스러운 번개 모임 제안!", a: [{t:"좋지! 당장 나갈 준비 시작!", type:"E", s:2}, {t:"음.. 오늘은 집에서 쉬고 싶은데..", type:"I", s:2}, {t:"누구누구 가는데? 들어보고 결정.", type:"E", s:1}, {t:"거절하기 미안해서 고민한다.", type:"I", s:1}] },
+            { q: "엘리베이터에 어색한 이웃과 탔을 때", a: [{t:"'안녕하세요~' 가볍게 스몰토크.", type:"E", s:2}, {t:"(폰 보는 척) 침묵 유지.", type:"I", s:2}, {t:"눈인사 정도만 하고 있는다.", type:"E", s:1}, {t:"최대한 존재감을 숨긴다.", type:"I", s:1}] },
+            { q: "에너지를 충전하는 방식은?", a: [{t:"친구들 만나서 수다 떨고 놀기.", type:"E", s:2}, {t:"이불 속에서 혼자 넷플릭스 보기.", type:"I", s:2}, {t:"활동적인 취미 생활 즐기기.", type:"E", s:1}, {t:"잠을 푹 자거나 멍 때리기.", type:"I", s:1}] },
+            { q: "파티나 행사장에서 나는?", a: [{t:"주인공처럼 무대를 즐긴다.", type:"E", s:2}, {t:"구석진 자리나 벽 쪽에 있는다.", type:"I", s:2}, {t:"친한 친구 옆에만 붙어 있는다.", type:"E", s:1}, {t:"조용히 분위기만 살피다 온다.", type:"I", s:1}] },
+
+            { q: "멍 때릴 때 주로 하는 생각은?", a: [{t:"오늘 점심 뭐 먹지? 현실적인 고민.", type:"S", s:2}, {t:"만약 좀비가 나타나면? 상상의 나래.", type:"N", s:2}, {t:"어제 있었던 일 곱씹기.", type:"S", s:1}, {t:"미래에 대한 막연한 공상.", type:"N", s:1}] },
+            { q: "맛집을 고르는 기준은?", a: [{t:"방문자 리뷰와 평점 팩트 체크.", type:"S", s:2}, {t:"가게 분위기와 독특한 컨셉.", type:"N", s:2}, {t:"위치나 가격, 웨이팅 정보.", type:"S", s:1}, {t:"그 식당이 주는 느낌적인 느낌.", type:"N", s:1}] },
+            { q: "새 기계를 샀을 때?", a: [{t:"설명서를 꼼꼼히 읽어본다.", type:"S", s:2}, {t:"일단 이것저것 눌러보며 감으로.", type:"N", s:2}, {t:"필요한 기능만 검색해서 본다.", type:"S", s:1}, {t:"설명서는 나중에, 일단 켠다.", type:"N", s:1}] },
+            { q: "영화를 보고 난 후 대화", a: [{t:"배우 연기랑 CG가 대박이었어.", type:"S", s:2}, {t:"그 장면의 숨은 의미는 뭘까?", type:"N", s:2}, {t:"스토리가 좀 말이 안 되지 않아?", type:"S", s:1}, {t:"주인공 감정에 과몰입해서 토론.", type:"N", s:1}] },
+            { q: "길을 설명할 때 나는?", a: [{t:"'편의점에서 우회전해 100m 직진.'", type:"S", s:2}, {t:"'큰 은행 건물 쪽 느낌으로 쭉 가.'", type:"N", s:2}, {t:"정확한 위치를 지도로 찍어준다.", type:"S", s:1}, {t:"주변 큰 건물 위주로 설명한다.", type:"N", s:1}] },
+            { q: "요리할 때 레시피 활용법", a: [{t:"정확하게 계량해서 넣는다.", type:"S", s:2}, {t:"내 감을 믿고 적당히 넣는다.", type:"N", s:2}, {t:"있는 재료에 맞춰 변경한다.", type:"S", s:1}, {t:"새로운 재료로 창작 요리 시도.", type:"N", s:1}] },
+
+            { q: "친구가 '나 우울해서 빵 샀어'라고 하면?", a: [{t:"무슨 빵? 맛있어? 어디서 샀어?", type:"T", s:2}, {t:"저런.. 무슨 일 있어? 괜찮아?", type:"F", s:2}, {t:"왜 우울해? 빵 먹으면 좀 나아져?", type:"T", s:1}, {t:"달달한 거 먹고 기분 풀려라 얍!", type:"F", s:1}] },
+            { q: "친구가 차 사고 났다고 전화하면?", a: [{t:"안 다쳤어? 보험사는 불렀고?", type:"T", s:2}, {t:"헐!! 몸은 괜찮아?! 많이 놀랐지 ㅠㅠ", type:"F", s:2}, {t:"차 많이 망가졌어? 사진 찍어봐.", type:"T", s:1}, {t:"지금 어디야? 내가 갈까?", type:"F", s:1}] },
+            { q: "고민 상담을 해줄 때 나는?", a: [{t:"현실적인 해결책을 제시한다.", type:"T", s:2}, {t:"공감해주며 묵묵히 들어준다.", type:"F", s:2}, {t:"문제의 원인을 분석한다.", type:"T", s:1}, {t:"무조건 그 사람 편을 들어준다.", type:"F", s:1}] },
+            { q: "듣고 싶은 칭찬은?", a: [{t:"'너 진짜 일 잘한다. 능력 있어.'", type:"T", s:2}, {t:"'너랑 있으면 마음이 편해.'", type:"F", s:2}, {t:"'결과물이 완벽하네.'", type:"T", s:1}, {t:"'네 덕분에 분위기가 좋아졌어.'", type:"F", s:1}] },
+            { q: "후배가 실수해서 혼날 때", a: [{t:"'다음부턴 매뉴얼 잘 확인해.'", type:"T", s:2}, {t:"'많이 속상하지? 커피 한잔할래?'", type:"F", s:2}, {t:"'어디서 실수했는지 같이 보자.'", type:"T", s:1}, {t:"'누구나 실수해. 기죽지 마.'", type:"F", s:1}] },
+            { q: "애인과 싸웠을 때", a: [{t:"논리적으로 따지고 해결책 찾기.", type:"T", s:2}, {t:"서운한 감정 이해받고 공감하기.", type:"F", s:2}, {t:"시간 갖고 이성적으로 대화.", type:"T", s:1}, {t:"먼저 사과하고 감정 풀어주기.", type:"F", s:1}] },
+
+            { q: "여행 짐 싸기 스타일", a: [{t:"며칠 전부터 리스트대로 꼼꼼히.", type:"J", s:2}, {t:"출발 직전에 후다닥 챙긴다.", type:"P", s:2}, {t:"전날 밤에 펼쳐놓고 싼다.", type:"J", s:1}, {t:"가서 사면 되지! 여권, 지갑 끝.", type:"P", s:1}] },
+            { q: "중요한 시험이나 마감", a: [{t:"계획대로 미리미리 끝낸다.", type:"J", s:2}, {t:"닥쳐야 한다. 벼락치기 장인.", type:"P", s:2}, {t:"대략적인 일정만 잡는다.", type:"J", s:1}, {t:"마감 직전에 초능력이 나온다.", type:"P", s:1}] },
+            { q: "약속 장소 정하기", a: [{t:"맛집, 카페, 동선까지 완벽 계획.", type:"J", s:2}, {t:"만나서 '뭐 먹을래?' 하고 정한다.", type:"P", s:2}, {t:"가고 싶은 곳 후보만 정한다.", type:"J", s:1}, {t:"그날 날씨나 기분에 따라 즉흥적.", type:"P", s:1}] },
+            { q: "계획이 틀어졌을 때", a: [{t:"스트레스.. 다시 계획을 수정한다.", type:"J", s:2}, {t:"오히려 좋아! 뜻밖의 상황 즐김.", type:"P", s:2}, {t:"당황스럽지만 상황에 맞춘다.", type:"J", s:1}, {t:"계획은 바뀌라고 있는 법.", type:"P", s:1}] },
+            { q: "내 방 상태는?", a: [{t:"물건들이 제자리에 정리됨.", type:"J", s:2}, {t:"나만의 질서가 있는 카오스.", type:"P", s:2}, {t:"주기적으로 날 잡고 치운다.", type:"J", s:1}, {t:"치워도 금방 어질러져서 포기.", type:"P", s:1}] },
+            { q: "일 처리 스타일", a: [{t:"우선순위대로 차근차근.", type:"J", s:2}, {t:"흥미로운 것부터, 동시에 여러 개.", type:"P", s:2}, {t:"마감 기한은 꼭 지킨다.", type:"J", s:1}, {t:"과정을 즐기다 마감을 넘기기도..", type:"P", s:1}] }
+        ];
+
+        // 결과 데이터 (실제 이미지 URL 적용)
+        const results = {
+            "ENTJ": { color: "#ff4d4d", title:"성공한 젊은 CEO", desc:"야망과 리더십의 화신.\n목표를 향해 거침없이 돌진하는 불도저입니다. 큰 그림을 그리고 사람들을 이끄는 데 천부적인 재능이 있습니다.", img:"https://i.postimg.cc/RFBF8bzX/1-ENTJ-cheonglyong-migug-(nyuyog-ui-seong-gonghan-jeolm-eun-CEO).jpg", best:["INTP", "ISTP"], soso:["ISFJ", "ESFJ"] },
+            "INTJ": { color: "#8e44ad", title:"냉철한 전략가", desc:"용의주도한 전략가.\n남들이 보지 못하는 패턴을 꿰뚫어 봅니다. 혼자만의 시간에서 에너지를 얻으며 완벽을 추구합니다.", img:"https://i.postimg.cc/Dy82CKXW/2-INTJ-hyeonmu-dog-il-(naengcheolhan-beleullin-ui-cheolhagja).jpg", best:["ENFP", "ENTP"], soso:["ESFJ", "ISFJ"] },
+            "ENFJ": { color: "#ffaa00", title:"열정적인 리더", desc:"사람을 이끄는 따뜻한 불꽃.\n타인의 잠재력을 성장시키는 데 탁월합니다. 모두가 행복한 세상을 꿈꾸는 진정한 평화주의자입니다.", img:"https://i.postimg.cc/YqhpXwWj/3-ENFJ-jujag-geuliseu-(jijunghaeui-yeoljeongjeog-in-taeyang).jpg", best:["ISFP", "INFP"], soso:["ISTJ", "ESTJ"] },
+            "ENFP": { color: "#00e676", title:"자유로운 스파크", desc:"어디로 튈지 모르는 매력덩어리.\n상상력이 풍부하고 에너지가 넘쳐 주변을 즐겁게 만듭니다. 반복되는 일상보다는 모험을 사랑합니다.", img:"https://i.postimg.cc/ncCHdtDX/4-ENFP-gumiho-beulajil-(lioui-hwalyeohan-chugje).jpg", best:["INTJ", "INFJ"], soso:["ISTJ", "ESTJ"] },
+            
+            "ISTJ": { color: "#2980b9", title:"클래식한 신사숙녀", desc:"세상의 소금 같은 존재.\n한결같은 성실함과 책임감으로 맡은 일을 완벽하게 해냅니다. 변화보다는 안정을 추구하는 신뢰의 아이콘입니다.", img:"https://i.postimg.cc/PrPt6kw5/5-ISTJ-so-yeong-gug-(keullaesighan-leondeon-ui-sinsasugnyeo).jpg", best:["ESTJ", "ESFP"], soso:["ENFP", "INFP"] },
+            "ISFJ": { color: "#6ab04c", title:"포근한 힐러", desc:"다정하고 세심한 수호자.\n조용히 뒤에서 타인을 챙겨주는 배려심 깊은 성격입니다. 갈등을 싫어하고 따뜻한 조화를 중요시합니다.", img:"https://i.postimg.cc/zXVJd1gX/6-ISFJ-yang-seuwiseu-(alpeuseuui-pogeunhan-hilleo).jpg", best:["ESFJ", "ESTP"], soso:["ENTP", "INTJ"] },
+            "ESTJ": { color: "#c0392b", title:"엄격한 관리자", desc:"질서와 효율의 화신.\n명확한 목표를 세우고 체계적으로 추진합니다. 현실 감각이 뛰어나고 조직을 이끄는 데 능숙한 해결사입니다.", img:"https://i.postimg.cc/SNJyZpMQ/7-ESTJ-dalg-jung-gug-(sanghaiui-wanbyeogjuui-elliteu).jpg", best:["ISTJ", "ISTP"], soso:["INFP", "ENFP"] },
+            "ESFJ": { color: "#f1c40f", title:"다정한 호스트", desc:"사랑 넘치는 분위기 메이커.\n사람을 좋아하고 타인의 감정에 깊이 공감합니다. 주변을 챙기는 것을 즐기며 어디서나 환영받습니다.", img:"https://i.postimg.cc/pXp20tFW/8-ESFJ-gae-taegug-(misoui-nala-dajeonghan-hoseuteu).jpg", best:["ISFP", "ISFJ"], soso:["INTJ", "ENTJ"] },
+
+            "ISTP": { color: "#7f8c8d", title:"만능 재주꾼", desc:"자유로운 영혼의 현실주의자.\n냉철한 이성과 뛰어난 관찰력으로 문제를 해결합니다. 불필요한 감정 소모를 싫어하는 쿨한 매력의 소유자입니다.", img:"https://i.postimg.cc/kXBnjdbq/9-ISTP-baem-leosia-(sibeliaui-chagaun-gisulja).jpg", best:["ESTJ", "ENTJ"], soso:["ENFJ", "ESFJ"] },
+            "ISFP": { color: "#ff7979", title:"몽환적인 예술가", desc:"온화하고 겸손한 아티스트.\n풍부한 감수성과 미적 감각을 가졌습니다. 타인을 배려하지만 자신만의 시간과 공간을 중요하게 생각합니다.", img:"https://i.postimg.cc/bNsz6jth/10-ISFP-tokki-peulangseu-(paliui-monghwanjeog-in-yesulga).jpg", best:["ENFJ", "ESFJ"], soso:["ENTJ", "ESTJ"] },
+            "ESTP": { color: "#e67e22", title:"와일드한 모험가", desc:"거침없는 행동파.\n스릴과 도전을 즐기며, 고민할 시간에 일단 저지르고 봅니다. 타고난 센스와 적응력으로 삶을 즐깁니다.", img:"https://i.postimg.cc/yYkVfzZC/11-ESTP-holang-i-hoju-(ausbaeg-ui-waildeuhan-moheomga).jpg", best:["ISFJ", "ENTP"], soso:["INFP", "ENFP"] },
+            "ESFP": { color: "#ff9ff3", title:"정열의 댄서", desc:"타고난 슈퍼스타 재질.\n어디서나 주목받는 것을 즐기는 분위기 메이커입니다. 낙천적이고 에너지가 넘쳐 함께 있으면 즐겁습니다.", img:"https://i.postimg.cc/yYkVfzZ4/12-ESFP-mal-seupein-(jeong-yeol-ui-peullamengko-daenseo).jpg", best:["ISTJ", "INTP"], soso:["INTJ", "ENTJ"] },
+
+            "INFP": { color: "#a29bfe", title:"낭만적인 요정", desc:"순수한 이상주의자.\n마음속에 자신만의 아름다운 우주를 품고 있습니다. 타인에게 깊이 공감하며 진정성 있는 관계를 추구합니다.", img:"https://i.postimg.cc/T2kdqPpf/13-INFP-dwaeji-aiseullandeu-(olola-alaeui-yojeong).jpg", best:["ENFJ", "ENTJ"], soso:["ESTJ", "ISTJ"] },
+            "INTP": { color: "#54a0ff", title:"천재 연구원", desc:"지적 호기심이 넘치는 분석가.\n끊임없이 세상을 분석하고 새로운 아이디어를 탐구합니다. 조용하지만 비범한 사고방식을 가졌습니다.", img:"https://i.postimg.cc/7YfxByTj/14-INTP-jwi-ilbon-(dokyoui-cheonjae-haekeo).jpg", best:["ENTJ", "ESFP"], soso:["ESFJ", "ISFJ"] },
+            "ENTP": { color: "#00d2d3", title:"유쾌한 변론가", desc:"재치 넘치는 아이디어 뱅크.\n고정관념을 깨고 새로운 가능성을 탐색합니다. 논쟁을 즐기며 세상을 뒤흔들 잠재력을 가졌습니다.", img:"https://i.postimg.cc/kXBnjdtz/15-ENTP-wonsung-i-itallia-(lomaui-yukwaehan-kwaelagjuuija).jpg", best:["INFJ", "ESTP"], soso:["ISFJ", "ISTJ"] },
+            "INFJ": { color: "#6c5ce7", title:"신비로운 사제", desc:"깊은 통찰력의 소유자.\n사람의 마음을 꿰뚫어 보는 직관력이 뛰어납니다. 조용하지만 강한 신념으로 세상을 긍정적으로 바꿉니다.", img:"https://i.postimg.cc/pXp20tn7/16-INFJ-sansinlyeong-ijibteu-(nailgang-ui-sinbiloun-saje).jpg", best:["ENTP", "ENFP"], soso:["ESTP", "ISTP"] }
+        };
+
+        function startTest() {
+            document.getElementById('start').classList.remove('active');
+            document.getElementById('question').classList.add('active');
+            showQuestion();
+        }
+
+        function showQuestion() {
+            if (current >= questions.length) {
+                showLoading();
+                return;
+            }
+            const q = questions[current];
+            document.getElementById('qtext').textContent = `Q${current+1}. ${q.q}`;
+            
+            const div = document.getElementById('answers');
+            div.innerHTML = '';
+            q.a.forEach(ans => {
+                const btn = document.createElement('div');
+                btn.className = 'answer-btn';
+                btn.textContent = ans.t;
+                btn.onclick = () => {
+                    scores[ans.type] += ans.s;
+                    current++;
+                    showQuestion();
+                };
+                div.appendChild(btn);
+            });
+            document.getElementById('progress').style.width = `${(current/questions.length)*100}%`;
+        }
+
+        function showLoading() {
+            document.getElementById('question').classList.remove('active');
+            document.getElementById('loading').classList.add('active');
+            setTimeout(showResult, 2000);
+        }
+
+        function showResult() {
+            document.getElementById('loading').classList.remove('active');
+            document.getElementById('result').classList.add('active');
+
+            const mbti = (scores.E>scores.I?"E":"I")+(scores.S>scores.N?"S":"N")+(scores.T>scores.F?"T":"F")+(scores.J>scores.P?"J":"P");
+            const r = results[mbti];
+
+            // 결과 화면 진입 시에만 동적 컬러 적용
+            document.documentElement.style.setProperty('--mbti-color', r.color);
+
+            document.getElementById('resultType').innerText = mbti;
+            document.getElementById('resultTitle').innerText = r.title;
+            document.getElementById('resultImg').src = r.img;
+            document.getElementById('resultDesc').innerText = r.desc;
+            
+            // 궁합 데이터
+            document.getElementById('bestMatch').innerText = r.best.join(", ");
+            document.getElementById('sosoMatch').innerText = r.soso.join(", ");
+        }
+
+        function captureResult() {
+            const area = document.getElementById('captureArea');
+            // 캡쳐 시 배경색을 컨테이너 배경색과 동일하게 설정
+            html2canvas(area, { useCORS: true, scale: 2, backgroundColor: "#0a0f16" })
+            .then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'my_mbti.png';
+                link.href = canvas.toDataURL("image/png");
+                link.click();
+            });
+        }
+
+        function restartTest() {
+            current = 0;
+            scores = {E:0, I:0, S:0, N:0, T:0, F:0, J:0, P:0};
+            // 다시 시작할 때 동적 컬러를 기본 골드로 초기화
+            document.documentElement.style.setProperty('--mbti-color', 'var(--main-gold)');
+            document.getElementById('result').classList.remove('active');
+            document.getElementById('start').classList.add('active');
+        }
+    </script>
+</body>
+</html>
